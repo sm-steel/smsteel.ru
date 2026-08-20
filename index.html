@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>smsteel.ru</title>
+    <!--
+      Sets the `dark` class before the page paints, so there's no flash of
+      the wrong theme on load. This can't be done from React: main.tsx is a
+      deferred module script, so it (and any hook, including
+      useLayoutEffect) only runs after the browser has already painted the
+      page once with the default light styles. An inline, non-deferred
+      script is the only thing that runs early enough to set the class
+      before that first paint. Keep the toggle's own logic in React
+      (see theme-toggle.tsx) — this script only decides the initial class.
+    -->
+    <script>
+      ;(() => {
+        var stored = localStorage.getItem("theme")
+        var dark =
+          stored === "dark" ||
+          (stored !== "light" &&
+            window.matchMedia("(prefers-color-scheme: dark)").matches)
+        document.documentElement.classList.toggle("dark", dark)
+      })()
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

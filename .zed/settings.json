@@ -1,0 +1,51 @@
+// Project settings for smsteel.ru
+//
+// Requires the Biome extension (zed: extensions -> search "Biome" -> Install).
+// CSS also needs the Tailwind CSS extension: its bundled
+// tailwindcss-intellisense-css server replaces Zed's default
+// vscode-css-language-server, which doesn't know Tailwind v4 at-rules
+// (@theme, @custom-variant, @apply) and flags them as "Unknown at rule".
+// eslint is excluded on JS/TS/TSX: this project has no ESLint config or
+// dependency, biome is the only linter, and Zed's default "..." servers
+// would otherwise still start it.
+// code_actions_on_format runs biome's organizeImports assist (already
+// enabled in biome.json) whenever a file is formatted, so imports get
+// sorted on save (requires format_on_save, set globally or per-user).
+{
+  "languages": {
+    "JavaScript": {
+      "formatter": "language_server",
+      "language_servers": ["biome", "!eslint", "..."],
+      "code_actions_on_format": {
+        "source.organizeImports.biome": true
+      }
+    },
+    "TypeScript": {
+      "formatter": "language_server",
+      "language_servers": ["biome", "!eslint", "..."],
+      "code_actions_on_format": {
+        "source.organizeImports.biome": true
+      }
+    },
+    "TSX": {
+      "formatter": "language_server",
+      "language_servers": ["biome", "!eslint", "..."],
+      "code_actions_on_format": {
+        "source.organizeImports.biome": true
+      }
+    },
+    "JSON": {
+      "formatter": "language_server",
+      "language_servers": ["biome", "..."]
+    },
+    "CSS": {
+      "formatter": "language_server",
+      "language_servers": [
+        "biome",
+        "tailwindcss-intellisense-css",
+        "!vscode-css-language-server",
+        "..."
+      ]
+    }
+  }
+}
