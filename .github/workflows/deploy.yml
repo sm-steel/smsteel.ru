@@ -1,0 +1,48 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+
+concurrency:
+  group: deploy
+  cancel-in-progress: true
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+          cache: npm
+
+      - run: npm ci
+      - run: npm run build
+
+      - name: Load deploy key
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.DEPLOY_SSH_KEY }}
+
+      - name: Pin Moscow host key
+        run: |
+          mkdir -p ~/.ssh
+          echo "moscow.smsteel.ru ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINePbOeXsvuZN8mleEybPOdZS6S0XyXcvJRIJ3ZftGde" >> ~/.ssh/known_hosts
+
+      # The deploy user's SSH key is locked server-side to `rrsync` scoped
+      # to /opt/smsteel/dist (see /home/deploy/.ssh/authorized_keys on
+      # Moscow) — the rsync destination is therefore a bare colon (rrsync's
+      # restricted root), not the absolute path repeated.
+      #
+      # Assets are synced first (with --delete, to prune stale hashed
+      # filenames from old builds), index.html last, so there's never a
+      # moment where a served index.html references an asset that hasn't
+      # landed yet.
+      - name: Deploy assets
+        run: rsync -avz --delete --exclude index.html dist/ deploy@moscow.smsteel.ru:
+
+      - name: Deploy index.html
+        run: rsync -avz dist/index.html deploy@moscow.smsteel.ru:index.html
