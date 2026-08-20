@@ -42,7 +42,9 @@ jobs:
       # moment where a served index.html references an asset that hasn't
       # landed yet.
       - name: Deploy assets
-        run: rsync -avz --delete --exclude index.html dist/ deploy@moscow.smsteel.ru:
+        run: |
+          rsync -avz --delete --exclude index.html dist/ deploy@moscow.smsteel.ru:
 
       - name: Deploy index.html
-        run: rsync -avz dist/index.html deploy@moscow.smsteel.ru:index.html
+        run: |
+          rsync -avz dist/index.html deploy@moscow.smsteel.ru:index.html
