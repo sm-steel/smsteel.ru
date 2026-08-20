@@ -190,14 +190,32 @@ function buildShardGeometryVariants(count: number) {
   const metrics: ShardVariantMetrics[] = []
 
   for (let i = 0; i < count; i++) {
-    const radiusBottom = lerp(0.34, 0.58, rand())
-    // Always tapers upward (top narrower than bottom), like real quartz —
-    // never flares outward.
-    const taperRatio = lerp(0.55, 0.85, rand())
-    const radiusTop = radiusBottom * taperRatio
-    const bodyHeight = lerp(0.75, 1.6, rand())
+    // Lower bound (small/medium crystals) is unchanged; the upper bound is
+    // pulled in twice now (0.58 -> 0.46 -> 0.37) so the widest variants
+    // read as noticeably thinner/pointier instead of chunky, per user
+    // feedback.
+    const radiusBottom = lerp(0.34, 0.37, rand())
+    // Body sides run parallel-to-subtly-flared going up (top >= bottom),
+    // like a real quartz prism's shaft — the root is never wider than the
+    // top of the body. Only the capping pyramid ("head") actually tapers
+    // to a point.
+    const topRatio = lerp(1.0, 1.15, rand())
+    const radiusTop = radiusBottom * topRatio
+    let bodyHeight = lerp(0.75, 1.6, rand())
     const capHeightRatio = lerp(0.35, 0.65, rand())
     const capHeight = THREE.MathUtils.clamp(bodyHeight * capHeightRatio, 0.3, 0.9)
+    // Enforce a believable height:width ratio (real crystal points read as
+    // roughly twice as tall as they are wide) by stretching the straight
+    // body — never the cap — just enough to hit that floor. Only kicks in
+    // when the random draw falls short, so already-tall variants are left
+    // alone and this can only make squat ones taller, never make anything
+    // extremely long.
+    const diameter = 2 * Math.max(radiusBottom, radiusTop)
+    const minTotalHeight = diameter * 2
+    const totalHeight = bodyHeight + capHeight
+    if (totalHeight < minTotalHeight) {
+      bodyHeight += minTotalHeight - totalHeight
+    }
     const facetJitter = Array.from({ length: 6 }, () => 1 + (rand() - 0.5) * 0.3)
 
     const geometry = buildShardGeometry({
@@ -231,22 +249,26 @@ const {
 // by its variantId instead of assuming every shard has the same proportions.
 export { SHARD_VARIANT_METRICS }
 
-// The largest bottom radius across every variant — used as a deliberately
-// conservative footprint bound in buildCrystalSites' collision check below,
-// so the check never undersizes a site's footprint regardless of which
-// variant a given shard actually rolled.
-const MAX_VARIANT_RADIUS_BOTTOM = Math.max(
-  ...SHARD_VARIANT_METRICS.map((m) => m.radiusBottom),
+// The largest radius (bottom or top, whichever is larger) across every
+// variant — used as a deliberately conservative footprint bound in
+// buildCrystalSites' collision check below, so the check never undersizes
+// a site's footprint regardless of which variant a given shard actually
+// rolled.
+const MAX_VARIANT_RADIUS = Math.max(
+  ...SHARD_VARIANT_METRICS.flatMap((m) => [m.radiusBottom, m.radiusTop]),
 )
 
-// Variant indices sorted narrowest-to-widest by radiusBottom — a tall,
-// slender variant still reads fine as a cluster crystal (that's just
-// "pointy"), but a wide/thick one looks wrong even as a node's centerpiece,
-// so node crystals restrict their variant picks to the narrow end of the
-// pool (see NODE_NARROW_VARIANT_COUNT / pickNarrowVariantId below) instead
-// of the full range singles draw from.
+// Variant indices sorted narrowest-to-widest by their widest radius (bottom
+// or top, whichever is larger) — a tall, slender variant still reads fine
+// as a cluster crystal (that's just "pointy"), but a wide/thick one looks
+// wrong even as a node's centerpiece, so node crystals restrict their
+// variant picks to the narrow end of the pool (see
+// NODE_NARROW_VARIANT_COUNT / pickNarrowVariantId below) instead of the
+// full range singles draw from.
 const VARIANTS_BY_RADIUS = SHARD_VARIANT_METRICS.map((_, i) => i).sort(
-  (a, b) => SHARD_VARIANT_METRICS[a].radiusBottom - SHARD_VARIANT_METRICS[b].radiusBottom,
+  (a, b) =>
+    Math.max(SHARD_VARIANT_METRICS[a].radiusBottom, SHARD_VARIANT_METRICS[a].radiusTop) -
+    Math.max(SHARD_VARIANT_METRICS[b].radiusBottom, SHARD_VARIANT_METRICS[b].radiusTop),
 )
 // The narrowest two-thirds of the pool (excludes the widest third) — every
 // crystal in a node, centerpiece included, picks its shape from only this
@@ -496,7 +518,7 @@ function footprintRadius(shards: Shard[]): number {
   let maxReach = 0
   for (const shard of shards) {
     const offsetXZ = Math.hypot(shard.offset[0], shard.offset[2])
-    const reach = offsetXZ + shard.scale * MAX_VARIANT_RADIUS_BOTTOM
+    const reach = offsetXZ + shard.scale * MAX_VARIANT_RADIUS
     if (reach > maxReach) maxReach = reach
   }
   return maxReach
