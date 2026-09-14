@@ -31,6 +31,11 @@ so there is never a moment where the served `index.html` references an
 asset that has not landed yet. The container serves the bind-mounted
 directory directly — no restart is needed, and none happens.
 
+A **docs-only** push deploys nothing — the workflow's `paths-ignore` skips
+`**/*.md`, `docs/`, and the agent-skill directories, none of which reach the
+host. Use the workflow's `workflow_dispatch` trigger if you ever need to
+deploy anyway.
+
 **Changes to `docker-compose.yml` or `nginx.conf` are not deployed by CI.**
 The deploy key is jailed to `dist/` (see below). Copy those up yourself and
 re-run `docker compose up -d`.
