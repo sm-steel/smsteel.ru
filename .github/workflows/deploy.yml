@@ -3,6 +3,24 @@ name: Deploy
 on:
   push:
     branches: [main]
+    # Documentation never reaches the host: the deploy rsyncs `dist/`, and
+    # nothing here is compiled into the build. A docs-only commit therefore
+    # has nothing to deploy, and running the pipeline for one only burns a
+    # build and opens an SSH session to moscow for a byte-identical rsync.
+    #
+    # `**/*.md` rather than a fixed filename list, so any future doc file
+    # anywhere in the repo is covered automatically. Note paths-ignore skips
+    # a push only when *every* changed file matches -- a commit touching
+    # both README.md and src/ still deploys.
+    paths-ignore:
+      - "docs/**"
+      - "**/*.md"
+      - ".claude/**"
+      - ".agents/**"
+  # Not path-filtered: a manual run means "deploy now," whatever the last
+  # commit happened to touch. Also the escape hatch if a docs-only commit
+  # ever does need to reach the host.
+  workflow_dispatch: {}
 
 concurrency:
   group: deploy
