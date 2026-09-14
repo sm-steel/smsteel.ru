@@ -72,6 +72,15 @@ src/
 Most of this layer is shader/PRNG-driven and computed once at module load
 (`CRYSTAL_SITES`, geometry variants) rather than per-render.
 
+## Deployment
+
+Pushing to `main` builds the site and rsyncs `dist/` onto **moscow**, where
+an `nginx:alpine` container (`docker-compose.yml` + `nginx.conf`, both at
+this repo's root) serves it behind that host's shared traefik. The host-side
+prerequisites — the `proxy` network, the jailed `deploy` user, the first-run
+`docker compose up -d` — are not automated; they are written down in
+[docs/deploy.md](docs/deploy.md).
+
 ## Visual verification
 
 There's no component test suite yet — changes to the 3D scene are verified
