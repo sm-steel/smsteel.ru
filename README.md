@@ -74,12 +74,13 @@ Most of this layer is shader/PRNG-driven and computed once at module load
 
 ## Deployment
 
-Pushing to `main` builds the site and rsyncs `dist/` onto **moscow**, where
-an `nginx:alpine` container (`docker-compose.yml` + `nginx.conf`, both at
-this repo's root) serves it behind that host's shared traefik. The host-side
-prerequisites — the `proxy` network, the jailed `deploy` user, the first-run
-`docker compose up -d` — are not automated; they are written down in
-[docs/deploy.md](docs/deploy.md).
+This repo builds and releases an image; it doesn't deploy anything itself.
+A release (a `develop` → `main` PR, versioned by semantic-release from
+Conventional Commits) publishes `ghcr.io/sm-steel/smsteel-web:X.Y.Z`:
+unprivileged nginx (port 8080) serving the built site, with `/version.txt`
+holding the version. Production runs whatever version a separate, private
+deployer repo pins; deploying a release is a version-bump PR there. See
+`CLAUDE.md` (Branching & workflow, CI) and the `Dockerfile`.
 
 ## Visual verification
 
