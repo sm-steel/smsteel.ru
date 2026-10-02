@@ -1,0 +1,36 @@
+name: Sync develop
+
+# Every develop -> main release PR merges via a new commit on main (GitHub's
+# merge button always creates one) that develop never gets back -- left
+# alone, the two branches slowly diverge. After each push to main, this opens
+# a main -> develop PR bringing that commit back. Merging it is left to a
+# human: both branches require a PR, and a PR opened with GITHUB_TOKEN
+# doesn't trigger checks.
+#
+# Requires "Allow GitHub Actions to create pull requests"
+# (Settings -> Actions -> General).
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Open main -> develop sync PR if one isn't already open
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          existing=$(gh pr list --base develop --head main --state open --json number --jq '.[0].number // empty')
+          if [ -n "$existing" ]; then
+            echo "Sync PR #$existing is already open, nothing to do."
+            exit 0
+          fi
+          gh pr create --base develop --head main \
+            --title "chore: sync main into develop" \
+            --body "Automated: brings the release merge commit(s) this push added to \`main\` back into \`develop\`, so the two branches don't diverge. Expected to merge with no conflicts."
