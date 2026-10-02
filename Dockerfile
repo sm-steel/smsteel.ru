@@ -12,6 +12,10 @@ ARG VERSION=dev
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=build /app/dist /usr/share/nginx/html
 # What a deploy's post-deploy probe reads to prove the NEW image is live.
+# The html dir is root-owned in this image, so write it as root, then drop
+# back to the image's own unprivileged user.
+USER root
 RUN printf '%s' "$VERSION" > /usr/share/nginx/html/version.txt
+USER 101
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
   CMD wget -q --spider http://127.0.0.1:8080/ || exit 1
