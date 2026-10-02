@@ -21,6 +21,8 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npm run build
+      - name: Release workflow shape (tag recoverable, smoke before push)
+        run: python3 tests/workflows/test_release.py
       - name: Image smoke test (read-only, non-root, SPA fallback, version)
         run: |
           docker build --build-arg VERSION=ci-${{ github.sha }} -t smsteel-web:ci .
