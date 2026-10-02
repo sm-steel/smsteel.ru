@@ -83,8 +83,7 @@ Screenshots themselves are gitignored (regenerated on demand, not source).
 ## Commit messages: Conventional Commits
 
 This repo uses [Conventional Commits](https://www.conventionalcommits.org/)
-— required once semantic-release is wired in (tracked in
-priv-vps-infrastructure's M9), harmless before that.
+— required by the release automation (`release.yml`, see CI).
 
 Format: `<type>(<optional scope>): <description>`
 
@@ -97,3 +96,54 @@ Format: `<type>(<optional scope>): <description>`
 
 One logical change per commit, same as always — this doesn't change that,
 it just adds a prefix that says what kind of change it is.
+
+## Branching & workflow
+
+`develop` is the integration branch — every task branch gets PR'd there.
+`main` is the GitHub **default** branch and release-only: it only moves via
+a deliberate `develop` → `main` PR when you want to cut a release, and that
+push is what triggers `release.yml`. Both branches require a PR — no direct
+pushes, no force pushes, no deletions.
+
+Because `main` is the default, **a new PR's base defaults to `main`** —
+always target `develop` explicitly: `gh pr create --base develop …`.
+
+The standard flow for any task:
+
+1. Make sure it has a GitHub issue (see "Task tracking").
+2. Create an isolated worktree for it at `.claude/worktrees/<branch>`.
+3. Branch from `develop` as `<type>/<issue#>-<slug>` — `<type>` matches the
+   Conventional Commits type (`feat/`, `fix/`, `chore/`, `docs/`, …).
+4. Commit there, then open a PR explicitly targeting `develop`.
+
+Releasing is its own step: open a `develop` → `main` PR and merge it when
+you're ready. That merge leaves a commit on `main` that `develop` doesn't
+have — `sync-develop.yml` opens a `main` → `develop` PR automatically;
+merge it before starting new branches.
+
+**A release only publishes an image** (`ghcr.io/sm-steel/smsteel-web:X.Y.Z`).
+It does not deploy: production runs whatever version a separate, private
+deployer repo pins, and deploying a release is a version-bump PR there.
+
+## Task tracking (GitHub Issues)
+
+Work is tracked as **GitHub Issues** on `sm-steel/smsteel.ru` via `gh` —
+the issue tracker is the source of truth for what's done/in progress.
+
+**Security rule — no exceptions, the repo is public:**
+
+> **Never put real logins, hostnames, IPs, passwords, API keys/tokens, SSH
+> keys, or any other credential into an issue title, issue body, issue
+> comment, PR description, PR comment, or commit message.** Use
+> placeholders (`<host>`, `<user>`, `<token>`). Everything here — commits,
+> issues, PRs, history — is public and indexed; there is no private
+> fallback to catch a slip.
+
+## CI
+
+- `checks.yml` — every push and PR (docs-only changes skipped): lint,
+  build, and an image smoke test (the built image run read-only; `/`, a
+  deep link and `/version.txt` checked; non-root asserted).
+- `release.yml` — push to `main`: semantic-release cuts the version from
+  Conventional Commits; if one was cut, the image is built and pushed.
+- `sync-develop.yml` — push to `main`: opens the `main` → `develop` PR.
